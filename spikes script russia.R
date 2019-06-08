@@ -49,7 +49,7 @@ fraud.estimates[i,3] <- nrow(sub.reg) - nrow(sub.reg.spikes)         #Save numbe
   cat("Region estimate complete for region ", as.character(fraud.estimates[i,1]), ". Estimate: ", as.character(fraud.estimates[i,2]))
   alarm()
 
-}
+}  #Paused--set beginning of loop to i = 133 to resume
   
 ###Old code
 for(i in 1:max(electoral$temp.id)){

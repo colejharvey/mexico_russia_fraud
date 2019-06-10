@@ -7,7 +7,7 @@ library(spikes)
 #Load the data
 
 electoral <- read.csv("C:/Users/Cole/Documents/Grad school/Research topics/All Russian election data/2016 Russia election data full.csv")
-electoral$temp.id <- as.numeric(as.factor(electoral$region.name))
+electoral$temp.id <- as.numeric(as.factor(electoral$region.name))  #Set factor to $region.name for region; region.district for district
 
 electoral2 <- as_tibble(electoral)  #Set as a tibble
 
@@ -33,7 +33,7 @@ for(i in 1:max(electoral2$temp.id)){
   
   sub.reg <- subset(electoral2, electoral2$temp.id == i) #Pick out one region (6=Donetska)
   sub.reg.spikes <- sub.reg[keepvars]
-  names(sub.reg.spikes) <- c("t","v", "N")                            #Rename variables to fit spikes
+  names(sub.reg.spikes) <- c("t","v", "N")                            #Rename variables to fit spikes: N = number of registered voters, t = number who voted, v = number of votes for a party 
   if(nrow(sub.reg.spikes) < 100) next #skips empty / small datasets (regions)
   sub.reg.spikes <- filter(sub.reg.spikes, t <= N & t > v)           #Exclude rows where turnout exceeds 100%
                                                                      #Drop rows where n of votes for a party exceeds total n of votes
@@ -41,15 +41,20 @@ fraud.estimates[i,3] <- nrow(sub.reg) - nrow(sub.reg.spikes)         #Save numbe
   
   sub.reg.spikes <- filter(sub.reg.spikes, t > 0 & v > 0)            #Drop rows with 0 votes cast to make code work
   set.seed(1274)                                                     #Set seed for spikes   
-  out <- spikes(sub.reg.spikes)                                      #Runs the spikes program                                                                      #Drop rows with 0 votes for party to make code work
+  out <- spikes(sub.reg.spikes, resamples=750)                       #Runs the spikes program                                                                      #Drop rows with 0 votes for party to make code work
   fraud.estimates[i,1] <- as.character(sub.reg$region.name)[i]
   fraud.estimates[i,2] <- as.numeric(summary(out)[1])
   fraud.estimates[i,4] <- nrow(sub.reg)
   fraud.estimates[i,5] <- ((fraud.estimates[i,2] / 100) * nrow(sub.reg.spikes)) + fraud.estimates[i,3] 
+  filename <- paste("C:/Users/Cole/Documents/Research projects/mexico_russia_fraud/spike_plots/", as.character(fraud.estimates[i,1]),
+                  ".png", sep="")
+  png(filename = filename)
+  plot.out(out)
+  dev.off()
   cat("Region estimate complete for region ", as.character(fraud.estimates[i,1]), ". Estimate: ", as.character(fraud.estimates[i,2]))
   alarm()
 
-}  #Paused--set beginning of loop to i = 133 to resume
+}  #Paused--set beginning of loop to i = 19 to resume
   
 ###Old code
 for(i in 1:max(electoral$temp.id)){

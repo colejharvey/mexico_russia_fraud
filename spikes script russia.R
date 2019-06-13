@@ -56,7 +56,9 @@ fraud.estimates[i,3] <- nrow(sub.reg) - nrow(sub.reg.spikes)         #Save numbe
 
 }  #Paused--set beginning of loop to i = 19 to resume
 
+
 write.csv(fraud.estimates, "~/Research projects/mexico_russia_fraud/fraud_estimates_russia_2016.csv")
+
   
 ###Old code
 for(i in 1:max(electoral$temp.id)){

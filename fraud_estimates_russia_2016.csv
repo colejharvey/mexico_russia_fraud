@@ -1,86 +1,86 @@
-"","region.name","percent.precincts.suspicious","additional.precincts.suspicious","n.precincts","total.count.suspicious"
-"1","Altajskij kraj",1.58,387,1882,410.621
-"2","Âmalo-Neneckij avtonomnyj okrug",0,74,227,74
-"3","Amurskaâ oblast'",1.02,202,765,207.7426
-"4","Arhangel'skaâ oblast'",0.51,216,942,219.7026
-"5","Âroslavskaâ oblast'",0.13,92,877,93.0205
-"6","Astrahanskaâ oblast'",0.51,130,618,132.4888
-"7","Belgorodskaâ oblast'",0,379,1251,379
-"8","Brânskaâ oblast'",2.36,403,1125,420.0392
-"9","Cecenskaâ Respublika",0,0,468,0
-"10","Celâbinskaâ oblast'",0.46,262,2298,271.3656
-"11",NA,NA,NA,NA,NA
-"12","Cuvašskaâ Respublika",0,609,1184,609
-"13","Evrejskaâ avtonomnaâ oblast'",0,77,169,77
-"14","Gorod Moskva",0,194,3620,194
-"15","Gorod Sankt-Peterburg",0.45,99,2006,107.5725
-"16","Gorod Sevastopol'",0,18,191,18
-"17","Habarovskij kraj",0,325,824,325
-"18","Hanty-Mansijskij avtonomnyj okrug",0,123,702,123
-"19","Irkutskaâ oblast'",0,560,1956,560
-"20","Ivanovskaâ oblast'",1.94,102,800,115.5412
-"21","Kabardino-Balkarskaâ Respublika",7.18,76,354,95.9604
-"22","Kaliningradskaâ oblast'",0.9,47,589,51.869
-"23","Kalužskaâ oblast'",0,250,732,250
-"24","Kamcatskij kraj",0,167,301,167
-"25","Karacaevo-Cerkesskaâ Respublika",15.94,66,249,95.1702
-"26","Kemerovskaâ oblast'",0.09,765,1761,765.8964
-"27","Kirovskaâ oblast'",0.29,497,1183,498.9894
-"28","Kostromskaâ oblast'",1.98,130,600,139.306
-"29","Krasnoârskij kraj",0.65,576,2196,586.517
-"30","Krasnodarskij kraj",0.64,765,2750,777.704
-"31","Kurganskaâ oblast'",1.07,395,992,401.3879
-"32","Kurskaâ oblast'",0.95,10,1161,20.9345
-"33","Leningradskaâ oblast'",0,172,976,172
-"34","Lipeckaâ oblast'",0,131,915,131
-"35","Magadanskaâ oblast'",10.82,89,107,90.9476
-"36","Moskovskaâ oblast'",0.38,191,3625,204.0492
-"37","Murmanskaâ oblast'",0.85,70,581,74.318
-"38",NA,NA,NA,NA,NA
-"39","Nižegorodskaâ oblast'",0,758,2455,758
-"40","Novgorodskaâ oblast'",0,161,544,161
-"41","Novosibirskaâ oblast'",2.25,520,2031,553.9975
-"42","Omskaâ oblast'",0.42,662,1808,666.8132
-"43","Orenburgskaâ oblast'",0.18,771,1766,772.791
-"44","Orlovskaâ oblast'",0.73,471,736,472.9345
-"45","Penzenskaâ oblast'",1.33,536,1105,543.5677
-"46","Permskij kraj",0.25,227,1838,231.0275
-"47","Primorskij kraj",0,294,1488,294
-"48","Pskovskaâ oblast'",0,95,639,95
-"49","Râzanskaâ oblast'",0.13,273,1028,273.9815
-"50","Respublika Adygeâ (Adygeâ)",0.45,70,263,70.8685
-"51","Respublika Altaj ",3.07,48,242,53.9558
-"52","Respublika Baškortostan",0.5,1974,3426,1981.26
-"53","Respublika Burâtiâ",0,84,839,84
-"54","Respublika Dagestan",0.21,215,1914,218.5595
-"55","Respublika Hakasiâ",0,137,393,137
-"56","Respublika Ingušetiâ",0,9,136,9
-"57","Respublika Kalmykiâ",1.1,173,251,173.858
-"58","Respublika Kareliâ",0.51,82,469,83.9737
-"59","Respublika Komi",0,88,669,88
-"60","Respublika Krym",0.51,57,1207,62.865
-"61","Respublika Marij Él",0,212,531,212
-"62","Respublika Mordoviâ",0,562,803,562
-"63","Respublika Saha (Âkutiâ)",0,405,811,405
-"64","Respublika Severnaâ Osetiâ",0,73,378,73
-"65","Respublika Tatarstan (Tatarstan)",0.34,1628,2824,1632.0664
-"66","Respublika Tyva",0,154,183,154
-"67","Rostovskaâ oblast'",0.64,541,2632,554.3824
-"68","Sahalinskaâ oblast'",0,74,473,74
-"69","Samarskaâ oblast'",0,651,1776,651
-"70","Saratovskaâ oblast'",0.31,732,1890,735.5898
-"71","Smolenskaâ oblast'",1.09,253,809,259.0604
-"72","Stavropol'skij kraj",0.41,213,1288,217.4075
-"73","Sverdlovskaâ oblast'",0.48,371,2538,381.4016
-"74","Tambovskaâ oblast'",0.88,219,930,225.2568
-"75","Tomskaâ oblast'",0.76,99,791,104.2592
-"76","Tul'skaâ oblast'",0.18,260,1136,261.5768
-"77","Tûmenskaâ oblast'",0,494,1133,494
-"78","Tverskaâ oblast'",1.99,194,1217,214.3577
-"79","Udmurtskaâ Respublika",0,251,1203,251
-"80","Ul'ânovskaâ oblast'",0.36,446,987,447.9476
-"81","Vladimirskaâ oblast'",0,179,982,179
-"82","Volgogradskaâ oblast'",0,558,1542,558
-"83","Vologodskaâ oblast'",0.74,236,1006,241.698
-"84","Voronežskaâ oblast'",0.55,768,1719,773.2305
-"85","Zabajkal'skij kraj",1.18,382,959,388.8086
+,region.name,percent.precincts.suspicious,additional.precincts.suspicious,n.precincts,total.count.suspicious
+1,Altajskij kraj,1.58,387,1882,410.621
+2,Âmalo-Neneckij avtonomnyj okrug,0,74,227,74
+3,Amurskaâ oblast',1.02,202,765,207.7426
+4,Arhangel'skaâ oblast',0.51,216,942,219.7026
+5,Âroslavskaâ oblast',0.13,92,877,93.0205
+6,Astrahanskaâ oblast',0.51,130,618,132.4888
+7,Belgorodskaâ oblast',0,379,1251,379
+8,Brânskaâ oblast',2.36,403,1125,420.0392
+9,Cecenskaâ Respublika,0,0,468,0
+10,Celâbinskaâ oblast',0.46,262,2298,271.3656
+11,NA,NA,NA,NA,NA
+12,Cuvašskaâ Respublika,0,609,1184,609
+13,Evrejskaâ avtonomnaâ oblast',0,77,169,77
+14,Gorod Moskva,0,194,3620,194
+15,Gorod Sankt-Peterburg,0.45,99,2006,107.5725
+16,Gorod Sevastopol',0,18,191,18
+17,Habarovskij kraj,0,325,824,325
+18,Hanty-Mansijskij avtonomnyj okrug,0,123,702,123
+19,Irkutskaâ oblast',0,560,1956,560
+20,Ivanovskaâ oblast',1.94,102,800,115.5412
+21,Kabardino-Balkarskaâ Respublika,7.18,76,354,95.9604
+22,Kaliningradskaâ oblast',0.9,47,589,51.869
+23,Kalužskaâ oblast',0,250,732,250
+24,Kamcatskij kraj,0,167,301,167
+25,Karacaevo-Cerkesskaâ Respublika,15.94,66,249,95.1702
+26,Kemerovskaâ oblast',0.09,765,1761,765.8964
+27,Kirovskaâ oblast',0.29,497,1183,498.9894
+28,Kostromskaâ oblast',1.98,130,600,139.306
+29,Krasnoârskij kraj,0.65,576,2196,586.517
+30,Krasnodarskij kraj,0.64,765,2750,777.704
+31,Kurganskaâ oblast',1.07,395,992,401.3879
+32,Kurskaâ oblast',0.95,10,1161,20.9345
+33,Leningradskaâ oblast',0,172,976,172
+34,Lipeckaâ oblast',0,131,915,131
+35,Magadanskaâ oblast',10.82,89,107,90.9476
+36,Moskovskaâ oblast',0.38,191,3625,204.0492
+37,Murmanskaâ oblast',0.85,70,581,74.318
+38,NA,NA,NA,NA,NA
+39,Nižegorodskaâ oblast',0,758,2455,758
+40,Novgorodskaâ oblast',0,161,544,161
+41,Novosibirskaâ oblast',2.25,520,2031,553.9975
+42,Omskaâ oblast',0.42,662,1808,666.8132
+43,Orenburgskaâ oblast',0.18,771,1766,772.791
+44,Orlovskaâ oblast',0.73,471,736,472.9345
+45,Penzenskaâ oblast',1.33,536,1105,543.5677
+46,Permskij kraj,0.25,227,1838,231.0275
+47,Primorskij kraj,0,294,1488,294
+48,Pskovskaâ oblast',0,95,639,95
+49,Râzanskaâ oblast',0.13,273,1028,273.9815
+50,Respublika Adygeâ (Adygeâ),0.45,70,263,70.8685
+51,Respublika Altaj ,3.07,48,242,53.9558
+52,Respublika Baškortostan,0.5,1974,3426,1981.26
+53,Respublika Burâtiâ,0,84,839,84
+54,Respublika Dagestan,0.21,215,1914,218.5595
+55,Respublika Hakasiâ,0,137,393,137
+56,Respublika Ingušetiâ,0,9,136,9
+57,Respublika Kalmykiâ,1.1,173,251,173.858
+58,Respublika Kareliâ,0.51,82,469,83.9737
+59,Respublika Komi,0,88,669,88
+60,Respublika Krym,0.51,57,1207,62.865
+61,Respublika Marij Él,0,212,531,212
+62,Respublika Mordoviâ,0,562,803,562
+63,Respublika Saha (Âkutiâ),0,405,811,405
+64,Respublika Severnaâ Osetiâ,0,73,378,73
+65,Respublika Tatarstan (Tatarstan),0.34,1628,2824,1632.0664
+66,Respublika Tyva,0,154,183,154
+67,Rostovskaâ oblast',0.64,541,2632,554.3824
+68,Sahalinskaâ oblast',0,74,473,74
+69,Samarskaâ oblast',0,651,1776,651
+70,Saratovskaâ oblast',0.31,732,1890,735.5898
+71,Smolenskaâ oblast',1.09,253,809,259.0604
+72,Stavropol'skij kraj,0.41,213,1288,217.4075
+73,Sverdlovskaâ oblast',0.48,371,2538,381.4016
+74,Tambovskaâ oblast',0.88,219,930,225.2568
+75,Tomskaâ oblast',0.76,99,791,104.2592
+76,Tul'skaâ oblast',0.18,260,1136,261.5768
+77,Tûmenskaâ oblast',0,494,1133,494
+78,Tverskaâ oblast',1.99,194,1217,214.3577
+79,Udmurtskaâ Respublika,0,251,1203,251
+80,Ul'ânovskaâ oblast',0.36,446,987,447.9476
+81,Vladimirskaâ oblast',0,179,982,179
+82,Volgogradskaâ oblast',0,558,1542,558
+83,Vologodskaâ oblast',0.74,236,1006,241.698
+84,Voronežskaâ oblast',0.55,768,1719,773.2305
+85,Zabajkal'skij kraj,1.18,382,959,388.8086

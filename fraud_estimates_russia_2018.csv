@@ -1,0 +1,85 @@
+"","region.name","percent.precincts.suspicious","additional.precincts.suspicious","n.precincts","total.count.suspicious"
+"1","Altajskij kraj",0.28,490,1831,493.7548
+"2","Âmalo-Neneckij avtonomnyj okrug",0,130,228,130
+"3","Amurskaâ oblast'",0.11,265,772,265.5577
+"4","Arhangel'skaâ oblast'",0,323,948,323
+"5","Astrahanskaâ oblast'",0,232,579,232
+"6","Belgorodskaâ oblast'",0,503,1263,503
+"7","Brânskaâ oblast'",0.58,532,1113,535.3698
+"8","Cecenskaâ Respublika",0,9,372,9
+"9","Celâbinskaâ oblast'",1.15,473,2305,494.068
+"10",NA,NA,NA,NA,NA
+"11","Cuvašskaâ Respublika - Cuvašiâ",0.7,831,1177,833.422
+"12","Evrejskaâ avtonomnaâ oblast'",1.86,86,184,87.8228
+"13","gorod Moskva",0,224,3615,224
+"14","gorod Sankt-Peterburg",0.93,569,2052,582.7919
+"15","gorod Sevastopol'",0,18,182,18
+"16","Habarovskij kraj",0,408,854,408
+"17","Irkutskaâ oblast'",0,544,1916,544
+"18","Ivanovskaâ oblast'",1.02,109,783,115.8748
+"19","Kabardino-Balkarskaâ Respublika",0,222,354,222
+"20","Kalužskaâ oblast'",0,300,732,300
+"21","Kamcatskij kraj",2.27,235,317,236.8614
+"22","Karacaevo-Cerkesskaâ Respublika",3.35,103,251,107.958
+"23","Kemerovskaâ oblast'",1.96,764,1750,783.3256
+"24","Khanti-Mansisky okrug",1.5,288,709,294.315
+"25","Kirovskaâ oblast'",0,597,1178,597
+"26","Kostromskaâ oblast'",0,185,600,185
+"27","Krasnoârskij kraj",1.12,886,2202,900.7392
+"28","Krasnodarskij kraj",0.13,1079,2790,1081.2243
+"29","Kurganskaâ oblast'",1.95,442,994,452.764
+"30","Kurskaâ oblast'",1.08,57,1163,68.9448
+"31","Leningradskaâ oblast'",0,224,985,224
+"32","Lipeckaâ oblast'",1.42,198,911,208.1246
+"33","Magadanskaâ oblast'",0,67,105,67
+"34","Moskovskaâ oblast'",0.07,412,4238,414.6782
+"35","Murmanskaâ oblast'",0,153,596,153
+"36",NA,NA,NA,NA,NA
+"37","Nižegorodskaâ oblast'",0.34,652,2263,657.4774
+"38","Novgorodskaâ oblast'",1.36,109,544,114.916
+"39","Novosibirskaâ oblast'",1.51,514,2029,536.8765
+"40","Omskaâ oblast'",0.29,889,1790,891.6129
+"41","Orenburgskaâ oblast'",1.02,1012,1754,1019.5684
+"42","Orlovskaâ oblast'",0,378,730,378
+"43","Penzenskaâ oblast'",0.58,670,1102,672.5056
+"44","Permskij kraj",0.66,250,1844,260.5204
+"45","Primorskij kraj",0.52,547,1580,552.3664
+"46","Pskovskaâ oblast'",1.33,235,638,240.3599
+"47","Râzanskaâ oblast'",0.45,328,1027,331.1455
+"48","Respublika Adygeâ (Adygeâ)",2.41,67,264,71.7477
+"49","Respublika Altaj",1.44,116,242,117.8144
+"50","Respublika Baškortostan",0,1452,3436,1452
+"51","Respublika Burâtiâ",0,309,841,309
+"52","Respublika Dagestan",0.13,727,1911,728.5392
+"53","Respublika Hakasiâ",0,193,391,193
+"54","Respublika Ingušetiâ",0,20,137,20
+"55","Respublika Kalmykiâ",0,174,251,174
+"56","Respublika Kareliâ",1.75,152,470,157.565
+"57","Respublika Komi",0.44,132,660,134.3232
+"58","Respublika Krym",0,44,1206,44
+"59","Respublika Marij Él",0.97,267,530,269.5511
+"60","Respublika Mordoviâ",0,257,785,257
+"61","Respublika Saha (Âkutiâ)",0,424,806,424
+"62","Respublika Severnaâ Osetiâ - Alaniâ",0.4,136,372,136.944
+"63","Respublika Tatarstan (Tatarstan)",0,1630,2817,1630
+"64","Respublika Tyva",0,133,183,133
+"65","Rostovskaâ oblast'",0,665,2627,665
+"66","Sahalinskaâ oblast'",0,162,482,162
+"67","Samarskaâ oblast'",0,607,1789,607
+"68","Saratovskaâ oblast'",1.19,1074,1891,1083.7223
+"69","Smolenskaâ oblast'",1.16,228,803,234.67
+"70","Stavropol'skij kraj",0.85,343,1294,351.0835
+"71","Sverdlovskaâ oblast'",0.54,410,2541,421.5074
+"72","Tambovskaâ oblast'",0,249,926,249
+"73","Tomskaâ oblast'",1.35,181,778,189.0595
+"74","Tul'skaâ oblast'",0.55,139,1136,144.4835
+"75","Tûmenskaâ oblast'",0.18,465,1130,466.197
+"76","Tverskaâ oblast'",1.72,228,1218,245.028
+"77","Udmurtskaâ Respublika",0,456,1204,456
+"78","Ul'ânovskaâ oblast'",0.91,405,989,410.3144
+"79","Vladimirskaâ oblast'",1.06,196,984,204.3528
+"80","Volgogradskaâ oblast'",0.88,919,1539,924.456
+"81","Vologodskaâ oblast'",0.48,326,1000,329.2352
+"82","Voronežskaâ oblast'",0,729,1717,729
+"83","Yaroslavskaya oblast'",0,161,869,161
+"84","Zabajkal'skij kraj",2.63,380,942,394.7806

@@ -1,0 +1,194 @@
+---
+title: "Mexico PAN fraud analysis"
+output: html_notebook
+---
+
+```{r setup, include = FALSE, message = FALSE}
+library(tidyverse)
+library(interplot)
+library(lme4)
+library(ggplot2)
+
+```
+
+
+```{r data}
+mex.ivs <- read.csv("C:/Users/Cole/Documents/Grad school/Dissertation/Mexico independent variables/mexico independent variables final_jan_2019.csv")
+mex.fraud <- read.csv("C:/Users/Cole/Documents/Grad school/Dissertation/Mexico elections data/Mexico fraud scores/mexico fraudscores 1994-2012 csv.csv")
+
+#mex.ivs <- mex.ivs %>% select(-gov.switch)
+
+mex.ivs <- mex.ivs %>% mutate(election.key = str_c(id_estado, year, presidential, sep = "_"))
+mex.fraud <- mex.fraud %>% mutate(election.key = str_c(id_estado, year, presidential, sep = "_"))
+
+
+mex.data <- inner_join(mex.ivs, mex.fraud, by = "election.key")
+
+```
+
+Quick test using all variables, variables seem good
+Alternation is a good predictor
+
+```{r testing_vars}
+model.test <- lm(pan.spikes.share ~ alternation.ever + pri.deputies.proportion + grp2013.pop + pri.gov + pct.catholic +
+                  indigenous.by.pop + presidential.x + population + pri.pres + density + piped.water + postprimary.by.pop + alternation.ever:pri.deputies.proportion, data=mex.data)
+summary(model.test)
+
+model.test.binary <- glm(PAN ~ alternation.ever + pri.deputies.proportion + grp2013.pop + pri.gov + pct.catholic +
+                          indigenous.by.pop + presidential.x + population + pri.pres + density + piped.water + postprimary.by.pop + alternation.ever:pri.deputies.proportion, family = binomial(link="logit"), data=mex.data)
+summary(model.test.binary)
+interplot(model.test.binary, var2 = "alternation.ever", var1 = "pri.deputies.proportion")
+```
+
+Next step is to do the same multilevel analyses as in dissertation script and see how they turn out with the addition of this new data.
+
+The model below shows that PAN governors reduce PAN fraud when PRI is dominant nationwide; as PRI loses ground, they have no effect (neither positive or negative)
+
+```{r base_model}
+model.pan.mm.controls<-glmer(PAN~presidential.x+
+                        pct.govs.notpri+
+                        pan.gov+
+                        #piped.water+
+                        grp2013.pop +
+                        pct.catholic+
+                        log(density)+
+                        log(population)+
+                        log(indigenous)+
+                        over.sixty+
+                        postprimary.by.pop+
+                          #pri.pres+
+                          #pri.pres*pan.gov+   #pri.pres is not helpful
+                      pct.govs.notpri*pan.gov+
+                        (1 | id_estado.x), data=mex.data,
+                 family=binomial) #Varying intercept  AIC and BIC better than varying intercept + varying slope model
+
+summary(model.pan.mm.controls)
+```
+
+Plotting predicted probabilities
+
+```{r plot_pp_pan}
+newdata2<- with(mex.data, data.frame(pct.govs.notpri = rep(seq(from = min(mex.data$pct.govs.notpri, na.rm=TRUE), to = max(mex.data$pct.govs.notpri, na.rm=TRUE), length.out = 448/2), 2),
+                             presidential.x = 0, 
+                             pan.gov=factor(c(rep(0, 448/2), rep(1,448/2))),
+                           grp2013.pop = mean(mex.data$grp2013.pop),
+                             pct.catholic = mean(mex.data$pct.catholic),
+                           density=mean(log(mex.data$density)),
+                           population=mean(log(mex.data$population)),
+                           indigenous=mean(log(mex.data$indigenous)),
+                           over.sixty=mean(mex.data$over.sixty),
+                           #piped.water = mean(piped.water, na.rm=TRUE),
+                           postprimary.by.pop=mean(mex.data$postprimary.by.pop))) #PAN set to 0 as placeholder
+
+
+newdata2$PAN <- predict(model.pan.mm.controls,newdata2,re.form=NA)
+newdata2$invPAN<-invlogit(newdata2$PAN)
+
+
+g0 <- ggplot(newdata2, aes(x=pct.govs.notpri, y=invPAN, colour=pan.gov))+geom_point()
+g0 +# geom_errorbar(aes(ymin = invplo, ymax = invphi))+
+  labs(title="Predicted probability of PAN fraud",
+       x="National percentage non-PRI governors",
+       y="Predicted probability of PAN fraud")  #Probably work with this one
+#plot prediction
+
+
+newdata2$gov.party<-NA
+newdata2$gov.party[1:224]<-"Not PAN"
+newdata2$gov.party[225:448]<-"PAN"
+
+h1<-ggplot(newdata2, aes(x = pct.govs.notpri, y = invPAN))  + geom_line(aes(colour = factor(gov.party)))
+h1 <- h1+labs(x="Non-PRI governors percentage",
+              y="Predicted probability",
+              title="Predicted probability of PAN fraud by national and local competitiveness")+
+  guides(fill=FALSE)+
+  scale_colour_discrete(name="Governor party") + facet_wrap(~ gov.party)
+h1 + theme_bw()  #Correct graph here
+
+```
+
+
+
+Now using alternation.ever as the explanatory variable
+
+```{r model_alternation}
+model.pan.mm.alt.controls<-glmer(PAN~presidential.x+
+                                   pan.gov +
+                                   post.1996 +
+                                   pct.govs.notpri + 
+                                   piped.water + 
+                                   alternation.ever+
+                                   pct.catholic + 
+                                   log(density) +
+                                   log(population) +
+                                   log(indigenous) + 
+                                   over.sixty + 
+                                   postprimary.by.pop +
+                               pct.govs.notpri*alternation.ever +(1 | id_estado.x), data=mex.data,
+                             family=binomial)
+summary(model.pan.mm.alt.controls)
+```
+
+Plotting alternation model
+
+```{r plot_alternation}
+newdata2<- with(mex.data, data.frame(PAN = mex.data$PAN, pct.govs.notpri = rep(seq(from = min(mex.data$pct.govs.notpri), to = max(mex.data$pct.govs.notpri), length.out = 448/2),2),
+                                       presidential.x = 0, 
+                                     pan.gov = 1,
+                                     post.1996 = 1,
+                                     alternation.ever = factor(c(rep(0,448/2), rep(1, 448/2))),
+                                       grp2013.pop = mean(mex.data$grp2013.pop),
+                             pct.catholic = mean(mex.data$pct.catholic),
+                           density=mean(log(mex.data$density)),
+                           population=mean(log(mex.data$population)),
+                           indigenous=mean(log(mex.data$indigenous)),
+                           over.sixty=mean(mex.data$over.sixty),
+                                       piped.water=mean(mex.data$piped.water),
+                                       postprimary.by.pop=mean(mex.data$postprimary.by.pop))) #PAN set to 0 as placeholder
+
+
+mm <- model.matrix(terms(model.pan.mm.alt.controls),newdata2)
+newdata2$PAN <- predict(model.pan.mm.alt.controls,newdata2,re.form=NA)
+newdata2$invPAN<-invlogit(newdata2$PAN)
+## or newdat$distance <- mm %*% fixef(model.pan.mm.controls)
+
+#plot confidence
+library(ggplot2)
+g0 <- ggplot(newdata2, aes(x=pct.govs.notpri, y=invPAN, colour=alternation.ever))+geom_line() +
+  labs(title="Predicted probability of PAN fraud by national and local competitiveness",
+       x="National percentage non-PRI governors",
+       y="Predicted probability of PAN fraud") +facet_wrap(~ alternation.ever)+ theme_bw()+
+  scale_colour_discrete(name="Political alternation")  #Probably work with this one
+#plot prediction
+g0
+```
+
+##Spikes analysis
+
+This fixed effects model is used because we can't do quasi-Poisson with MLM using glmer. Quasi is necessary because the data are wildly overdispersed, so regular Poisson is hugely wrong. It shows similar results to the digits model, though without an increase in spikes at the high end (rather it is stable)
+
+```{r spikes_gov}
+model.spikes.gov <-   glm(pan.total.suspicious~presidential.x+
+                        pct.govs.notpri+
+                        pan.gov+
+                          #piped.water+
+                        grp2013.pop +
+                        #pct.catholic+
+                        #log(density)+
+                        #log(population)+
+                        log(indigenous)+
+                        over.sixty+
+                        postprimary.by.pop + 
+                          n.precincts +
+                          #pri.pres+
+                          #pri.pres*pan.gov+   #pri.pres is not helpful
+                      pct.govs.notpri*pan.gov + factor(id_estado.x), data=mex.data, family=quasipoisson)
+summary(model.spikes.gov)
+interplot(model.spikes.gov, var1="pan.gov", var2="pct.govs.notpri")
+```
+
+
+
+
+
+These results seem encouraging.  The next steps should be to confirm that increases in fraud score and spikes under PAN governors are associated with higher vote-shares or other indicators of positive fraud. These could include looking at skewness or multimodality in turnout / voteshare.  That would mean collecting those figures from whatever datasets I already have.

@@ -1,5 +1,6 @@
 ###Script for doing all chi square tests in one go
 ##Presidential elections
+library(tidyverse)
 rm(list=ls())
 russia2011 <- read.csv("C:/Users/Cole/Documents/Research topics literature/All Russian election data/russia 2011 duma election condensed.csv")
 
@@ -11,11 +12,13 @@ ldprdigit<-(russia2011$LDPR)%%10
 russia2011<-cbind(russia2011, urdigit, kprfdigit, ldprdigit)
 ####
 
+ids <- unique(russia2011$regionid)
+
 chivalues<-matrix(NA, nrow=max(russia2011$regionid, na.rm=TRUE), ncol=4)
 p<-as.vector(rbind(.1, .1, .1, .1, .1, .1, .1, .1, .1, .1))
 i<-1
-for (i in 83:nrow(chivalues)){
-  group<-subset(russia2011, regionid==i)
+for (i in 80:nrow(chivalues)){
+  group<-subset(russia2011, regionid== ids[i])
   if (nrow(group) > 0){
   table1<-table(group$urdigit)
   table2<-table(group$kprfdigit)
@@ -25,13 +28,13 @@ for (i in 83:nrow(chivalues)){
   chi2<-chisq.test(x=table2, p=p)
   chi3<-chisq.test(x=table3, p=p)
   
-  chivalues[i, ]<-rbind(i, chi1$p.value, chi2$p.value, chi3$p.value)  #Might have a type here, chi1 twice
+  chivalues[i, ]<-rbind(ids[i], chi1$p.value, chi2$p.value, chi3$p.value)  #Might have a type here, chi1 twice
   }
   else{next}
 }
 
-##Regionid 17 fails for LDPR --not enough digits--and for KPRF, will add entries manually
-##Region 82 fails for KPRF and LDRP--not enough digits
+##Regionid 17 fails for LDPR --not enough digits--and for KPRF, will add entries manually: result is 0/1/1
+##Region 79 fails for KPRF and LDRP--not enough digits
 
 ##Total fraudscores
 fraudscore2011<-matrix(NA, nrow=nrow(chivalues), ncol=5)
@@ -51,17 +54,29 @@ for(i in 1:nrow(chivalues)){
 voteshares <- matrix(NA, nrow=nrow(chivalues), ncol=4)
 i<-1
 for (i in 1:nrow(chivalues)){
-  group<-subset(russia2011, regionid==i)
+  group<-subset(russia2011, regionid==ids[i])
   if (nrow(group) > 0){
-    total.votes <- sum(group$valid) + sum(group$invalid)
-    ur.share <- sum(group$united.russia) / total.votes
-    kprf.share <- sum(group$KPRF) / total.votes
-    ldpr.share <- sum(group$LDPR) / total.votes
-    voteshares[i, ]<-rbind(i, ur.share, kprf.share, ldpr.share)  
+    total.votes <- sum(group$valid, na.rm=TRUE) + sum(group$invalid, na.rm = TRUE)
+    ur.share <- sum(group$united.russia, na.rm=TRUE) / total.votes
+    kprf.share <- sum(group$KPRF, na.rm=TRUE) / total.votes
+    ldpr.share <- sum(group$LDPR, na.rm=TRUE) / total.votes
+    voteshares[i, ]<-rbind(ids[i], ur.share, kprf.share, ldpr.share)  
   }
   else{next}
 }
 
 fraudscore2011 <- cbind(fraudscore2011, voteshares)
+fraudscore2011 <- round(fraudscore2011, 4)
+fraudscore2011 <- data.frame(fraudscore2011)
+
+fraudscore2011 <- fraudscore2011 %>% rename(regionid = "X1",
+                                            ur.fraud = "X2",
+                                            kprf.fraud = "X3",
+                                            ldpr.fraud = "X4",
+                                            total.fraud = "X5",
+                                            regionid.xtra = "X6",
+                                            ur.voteshare = "X7",
+                                            kprf.voteshare = "X8",
+                                            ldpr.voteshare = "X9")
 
 write.csv(fraudscore2011, "C:/Users/Cole/Documents/Research topics literature/All Russian election data/2011 presidential fraud scores_update.csv")

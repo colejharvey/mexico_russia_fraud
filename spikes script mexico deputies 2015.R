@@ -14,7 +14,7 @@ rm(electoral)
 
 #Create container for the results of the spikes program
 
-fraud.estimates <- matrix(NA, nrow=max(electoral2$ID_ESTADO), ncol=5) #5 columns: region.id or name, output from spikes, number of precincts where t > n or v > t, total precicnts, and %suspicious * total + additional suspicious
+fraud.estimates <- matrix(NA, nrow=max(electoral2$id_estado), ncol=5) #5 columns: region.id or name, output from spikes, number of precincts where t > n or v > t, total precicnts, and %suspicious * total + additional suspicious
 colnames(fraud.estimates) <- c("region.name", "percent.precincts.suspicious", "additional.precincts.suspicious", "n.precincts", "total.count.suspicious")
 fraud.estimates <- as_tibble(fraud.estimates)
 class(fraud.estimates[[2]])<-"numeric"
@@ -24,7 +24,7 @@ class(fraud.estimates[[5]])<-"numeric"
 
 #Keep variables needed for spikes (note UR here)--n of ballots cast, ballots cast for a party, and n of registered voters
 
-keepvars <- c("TOTAL_VOTOS", "PRI", "LISTA_NOMINAL") 
+keepvars <- c("total.votes", "PRI", "LISTA_NOMINAL") 
 
 #Set up a loop to calculate spikes for each region
 i <- 1
@@ -120,3 +120,26 @@ for(i in 1:max(electoral2$ID_ESTADO)){
 write.csv(fraud.estimates, "~/Research projects/mexico_russia_fraud/Mexico/fraud_estimates_mexico_2015_deps_pan.csv")
 
 
+
+
+###Code just for prima facie suspcious for double-checking 2015
+
+fraud.estimates <- matrix(NA, nrow=max(electoral2$id_estado), ncol=3) #5 columns: region.id or name, output from spikes, number of precincts where t > n or v > t, total precicnts, and %suspicious * total + additional suspicious
+colnames(fraud.estimates) <- c("region.name",  "additional.precincts.suspicious", "n.precincts")
+fraud.estimates <- as_tibble(fraud.estimates)
+class(fraud.estimates[[2]])<-"numeric"
+
+keepvars <- c("total.votes", "PRI", "LISTA_NOMINAL") 
+i<-1
+for(i in 1:max(electoral2$id_estado)){
+  
+  sub.reg <- filter(electoral2, electoral2$id_estado == i) #Pick out one region (6=Donetska)
+  sub.reg.spikes <- sub.reg[keepvars]
+  names(sub.reg.spikes) <- c("t","v", "N")     #Rename variables to fit spikes: N = number of registered voters, t = number who voted, v = number of votes for a party 
+  #if(nrow(sub.reg.spikes) < 100) next #skips empty / small datasets (regions)
+  sub.reg.spikes <- filter(sub.reg.spikes, t <= N & t > v )        #Keeps rows where total votes is less than or equal to list, and total votes is greater than party vote
+  #Drop rows where n of votes for a party exceeds total n of votes
+  fraud.estimates[i,1] <- as.character(sub.reg$ESTADO)[i]
+  fraud.estimates[i,2] <- nrow(sub.reg) - nrow(sub.reg.spikes)
+  fraud.estimates[i,3] <- nrow(sub.reg)
+}

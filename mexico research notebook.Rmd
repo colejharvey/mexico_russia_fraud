@@ -8,9 +8,15 @@ library(tidyverse)
 library(interplot)
 library(lme4)
 library(ggplot2)
-
+library(readxl)
+library(stargazer)
+library(cowplot)
 ```
 
+
+It may be worth the time to fix leg.margin.pan to account for cases where PAN is the second largest (in which case the measure is already correct), vs cases where PAN is not the second largest party (in which case I might look up the correct margin, or create a new DV for the PRD)
+
+It will also be necessary to stop using total.suspicious, since it currently has a component with no partisan direction (more total votes than registered voters). Stripping that out will be somewhat time consuming.
 
 ```{r data}
 mex.ivs <- read.csv("C:/Users/Cole/Documents/Grad school/Dissertation/Mexico independent variables/mexico independent variables final_jan_2019.csv")
@@ -24,43 +30,590 @@ mex.fraud <- mex.fraud %>% mutate(election.key = str_c(id_estado, year, presiden
 
 mex.data <- inner_join(mex.ivs, mex.fraud, by = "election.key")
 
+mex.data <- mex.data %>% mutate(precincts.suspicious.pan = round((pan.spikes.share / 100) * n.precincts))
+
+mex.data$largest.party.state <- relevel(mex.data$largest.party.state, ref = "PRI")
+
+pstar.data <- read_xlsx("C:/Users/Cole/Documents/Research projects/mexico_russia_fraud/pistar mexico full.xlsx")
+
+mex.data <- merge(mex.data, pstar.data, by ="election.region.id")
+
+ ##Getting demindex by PAN gov
+mex.data.temp <- mex.data %>% mutate(demindex.pan.temp = ifelse(pan.gov == 1, -1 * sub.demindex.giraudy, sub.demindex.giraudy))
+
+mex.data.temp <- mex.data.temp %>% mutate(demindex.pan.temp =  1/demindex.pan.temp)
+
+mex.data.temp <- mex.data.temp %>% mutate(demindex.pan = demindex.pan.temp * -1)
+
+  ##Getting legmargin.fix by PAN largest party
+
+mex.data.temp <- mex.data.temp %>% mutate(legmargin.pan = ifelse(largest.party.state == "PAN", leg.margin.fix, -1 * leg.margin.fix))
+
+mex.data.temp <- mex.data.temp %>% mutate(pri.pres = ifelse(is.na(pri.pres) == TRUE, 1, pri.pres))
+
+
+  ##Creating factors for unified regional party control
+
+mex.data.temp <- mex.data.temp %>% mutate(unified.reggov.pan = ifelse(
+  pan.gov == 1 & largest.party.state == "PAN", 1, 0)
+)
+mex.data.temp <- mex.data.temp %>% mutate(unified.reggov.pri = ifelse(
+  pri.gov == 1 & largest.party.state == "PRI", 1, 0)
+)
+mex.data.temp <- mex.data.temp %>% mutate(unified.reggov.prd = ifelse(
+  prd.gov == 1 & largest.party.state == "PRD", 1, 0)
+)
+mex.data.temp <- mex.data.temp %>% mutate(divided.reggov = ifelse(
+  unified.reggov.pan == 0 & unified.reggov.pri == 0 & unified.reggov.prd == 0, 1, 0)
+)
+
+  ##Creating a combined factor of the above
+
+mex.data.temp <- mex.data.temp %>% mutate(reggov.factor = ifelse(unified.reggov.pan == 1, "PAN", NA))
+mex.data.temp <- mex.data.temp %>% mutate(reggov.factor = ifelse(unified.reggov.pri == 1, "PRI", reggov.factor))
+mex.data.temp <- mex.data.temp %>% mutate(reggov.factor = ifelse(unified.reggov.prd == 1, "PRD", reggov.factor))
+mex.data.temp <- mex.data.temp %>% mutate(reggov.factor = ifelse(divided.reggov == 1, "Divided", reggov.factor))
+mex.data.temp$reggov.factor <- factor(mex.data.temp$reggov.factor)
+mex.data.temp$reggov.factor <- relevel(mex.data.temp$reggov.factor, ref="PRI")
+
+
+mex.data.temp <- mex.data.temp %>% mutate(pres.gov.pan = ifelse(pri.pres == 0 & pan.gov == 1, 1, 0))
+
+
+write.csv(mex.data.temp, "mexico ind vars.csv")
+
 ```
 
-Quick test using all variables, variables seem good
-Alternation is a good predictor
+```{r}
+mex.data <- read.csv("mexico ind vars.csv")
+mex.data$reggov.factor <- relevel(mex.data$reggov.factor, ref="PRI")
 
-```{r testing_vars}
-model.test <- lm(pan.spikes.share ~ alternation.ever + pri.deputies.proportion + grp2013.pop + pri.gov + pct.catholic +
-                  indigenous.by.pop + presidential.x + population + pri.pres + density + piped.water + postprimary.by.pop + alternation.ever:pri.deputies.proportion, data=mex.data)
-summary(model.test)
-
-model.test.binary <- glm(PAN ~ alternation.ever + pri.deputies.proportion + grp2013.pop + pri.gov + pct.catholic +
-                          indigenous.by.pop + presidential.x + population + pri.pres + density + piped.water + postprimary.by.pop + alternation.ever:pri.deputies.proportion, family = binomial(link="logit"), data=mex.data)
-summary(model.test.binary)
-interplot(model.test.binary, var2 = "alternation.ever", var1 = "pri.deputies.proportion")
 ```
 
-Next step is to do the same multilevel analyses as in dissertation script and see how they turn out with the addition of this new data.
 
-The model below shows that PAN governors reduce PAN fraud when PRI is dominant nationwide; as PRI loses ground, they have no effect (neither positive or negative)
 
-```{r base_model}
-model.pan.mm.controls<-glmer(PAN~presidential.x+
-                        pct.govs.notpri+
+
+##Pro- or anti-opposition fraud
+
+As a first step, should see how fraud and spikes affect vote-shares depending on local context. 1997 is used as the cutoff year, since this is the year that PRI lost control over the CD, marking the beginning of less consolidated patronage system..
+
+###Controls only
+
+```{r}
+model.controls<-lmer(PAN.voteshare ~  presidential.x+
+                        #piped.water+
+                        grp2013.pop +
+                        pct.catholic+
+                        log(density)+
+                        log(population)+
+                        #log(indigenous)+
+                        over.sixty+
+                        postprimary.by.pop+
+                          pri.pres+
+                          #pri.pres*pan.gov+   #pri.pres is not helpful
+                      
+                        (1 | id_estado.x), data=subset(mex.data, mex.data$year > 1997), REML=FALSE) #Varying intercept  AIC and BIC better than varying intercept + varying slope model
+
+summary(model.controls)
+```
+
+
+
+###PANgov.continuous 
+
+In the future, it may be worth the trouble to distinguish continuous PRI governorships from places where PRI regains contorl (currently both coded as 0 in pan.gov.continuous)
+
+```{r voteshares_panfraud}
+model.pan.voteshare<-lmer(PAN.voteshare ~ PAN + presidential.x+ 
+                        pan.gov.continuous+
+                        #piped.water+
+                        grp2013.pop +
+                        pct.catholic+
+                        log(density)+
+                        log(population)+
+                        #log(indigenous)+
+                        over.sixty+
+                        postprimary.by.pop+
+                          pri.pres+
+                          #pri.pres*pan.gov+   #pri.pres is not helpful
+                      pan.gov.continuous*PAN +
+                        (1 | id_estado.x), data=subset(mex.data, mex.data$year > 1997), REML=FALSE) #Varying intercept  AIC and BIC better than varying intercept + varying slope model
+
+summary(model.pan.voteshare)
+p.binary.comp <- interplot(model.pan.voteshare, var1="PAN", var2="pan.gov.continuous", hist=TRUE)  + geom_hline(yintercept = 0, linetype = 2) + theme_bw()
+
+p.binary.comp
+```
+Binary PAN fraud has negative marginal effect on PAN vote-share when PAN governors have been in office for 0 to 1 terms. From two terms to six, no effect. For seven and eight terms (or election cycles), positive effect on vote-shares
+
+```{r voteshares_spikes}
+model.panspikes.voteshare<-lmer(PAN.voteshare ~ pan.spikes.share +    
+                                                  presidential.x+
+                        pan.gov.continuous+
+                        #piped.water+
+                        grp2013.pop +
+                        pct.catholic+
+                        log(density)+
+                        log(population)+
+                        #log(indigenous)+
+                        over.sixty+
+                        postprimary.by.pop+
+                          pri.pres+
+                          #pri.pres*pan.gov+   #pri.pres is not helpful
+                      pan.gov.continuous*pan.spikes.share +
+                        (1 | id_estado.x), REML=FALSE, data=subset(mex.data, mex.data$year > 1997)) #Varying intercept  AIC and BIC better than varying intercept + varying slope model
+
+summary(model.panspikes.voteshare)
+interplot(model.panspikes.voteshare, var1="pan.spikes.share", var2="pan.gov.continuous", hist=TRUE)
+```
+Positive marginal effect for total precincts at most levels of PAN governorship. No effect for PAN spikes share alone
+
+```{r pan_pistar}
+model.pspan.voteshare<-lmer(PAN.voteshare ~ pistar.pan + presidential.x+
+                        pan.gov.continuous+
+                        #piped.water+
+                        grp2013.pop +
+                        pct.catholic+
+                        log(density)+
+                        log(population)+
+                        #log(indigenous)+
+                        over.sixty+
+                        postprimary.by.pop+
+                          pri.pres+
+                          #pri.pres*pan.gov+   #pri.pres is not helpful
+                      pan.gov.continuous*pistar.pan +
+                        (1 | id_estado.x), REML=FALSE, data=subset(mex.data, mex.data$year > 1997)) #Varying intercept  AIC and BIC better than varying intercept + varying slope model
+
+summary(model.pspan.voteshare)
+p.pistar.pancont <-   interplot(model.pspan.voteshare, var1="pistar.pan", var2="pan.gov.continuous", hist=TRUE)  + geom_hline(yintercept = 0, linetype = 2) + theme_bw()
+p.pistar.pancont
+```
+Same effect here as with PAN binary fraud measure, negative when PAN control = 0, and positive after two cycles of PAN control.
+
+```{r pan_delta}
+model.dpan.voteshare<-lmer(PAN.voteshare ~ delta.pan + presidential.x+
+                        pan.gov.continuous+
+                        #piped.water+
+                        grp2013.pop +
+                        pct.catholic+
+                        log(density)+
+                        log(population)+
+                        #log(indigenous)+
+                        over.sixty+
+                        postprimary.by.pop+
+                          pri.pres+
+                          #pri.pres*pan.gov+   #pri.pres is not helpful
+                      pan.gov.continuous*delta.pan +
+                        (1 | id_estado.x), REML=FALSE, data=subset(mex.data, mex.data$year > 1997)) #Varying intercept  AIC and BIC better than varying intercept + varying slope model
+
+summary(model.dpan.voteshare)
+p.delta.pancont <- interplot(model.dpan.voteshare, var1="delta.pan", var2="pan.gov.continuous", hist=TRUE)  + geom_hline(yintercept = 0, linetype = 2) + labs(x = "Consecutive election cycles with PAN governor") + theme_bw()
+p.delta.pancont
+```
+
+##Now the same models with alternative measure of local contestation
+
+###demindex.pan
+
+
+```{r voteshares_panfraud_demindex}
+model.pan.voteshare.demindex<-lmer(PAN.voteshare ~ PAN + presidential.x+
+                        demindex.pan+
+                        #piped.water+
+                        grp2013.pop +
+                        pct.catholic+
+                        log(density)+
+                        log(population)+
+                        #log(indigenous)+
+                        over.sixty+
+                        postprimary.by.pop+
+                          pri.pres+
+                          #pri.pres*pan.gov+   #pri.pres is not helpful
+                      demindex.pan*PAN +
+                        (1 | id_estado.x), data=subset(mex.data, mex.data$year > 1997), REML=FALSE) #Varying intercept  AIC and BIC better than varying intercept + varying slope model
+
+summary(model.pan.voteshare.demindex)
+p.binary.dem <- interplot(model.pan.voteshare.demindex, var1="PAN", var2="demindex.pan", hist=TRUE) + geom_hline(yintercept=0, linetype = 2) + theme_bw()
+p.binary.dem
+```
+Binary PAN fraud has negative marginal effect on PAN vote-share at all levels of demindex.pan
+
+```{r voteshares_spikes_demindex}
+model.panspikes.voteshare.demindex<-lmer(PAN.voteshare ~ pan.spikes.share +    
+                        #n.precincts + 
+                          presidential.x+
+                        demindex.pan+
+                        #piped.water+
+                        grp2013.pop +
+                        pct.catholic+
+                        log(density)+
+                        log(population)+
+                        #log(indigenous)+
+                        over.sixty+
+                        postprimary.by.pop+
+                          pri.pres+
+                          #pri.pres*pan.gov+   #pri.pres is not helpful
+                      demindex.pan*pan.spikes.share +
+                        (1 | id_estado.x), REML=FALSE, data=subset(mex.data, mex.data$year > 1997)) #Varying intercept  AIC and BIC better than varying intercept + varying slope model
+
+summary(model.panspikes.voteshare.demindex)
+interplot(model.panspikes.voteshare.demindex, var1="pan.spikes.share", var2="demindex.pan")
+```
+No effect for spikes variable, almost no observations are available for this model (n = 86)
+
+```{r pan_pistar_demindex}
+model.pspan.voteshare.demindex<-lmer(PAN.voteshare ~ pistar.pan + presidential.x+
+                        demindex.pan+
+                        #piped.water+
+                        grp2013.pop +
+                        pct.catholic+
+                        log(density)+
+                        log(population)+
+                        #log(indigenous)+
+                        over.sixty+
+                        postprimary.by.pop+
+                          pri.pres+
+                          #pri.pres*pan.gov+   #pri.pres is not helpful
+                      demindex.pan*pistar.pan +
+                        (1 | id_estado.x), REML=FALSE, data=subset(mex.data, mex.data$year > 1997)) #Varying intercept  AIC and BIC better than varying intercept + varying slope model
+
+summary(model.pspan.voteshare.demindex)
+p.pistar.dem <- interplot(model.pspan.voteshare.demindex, var1="pistar.pan", var2="demindex.pan", hist=TRUE) + geom_hline(yintercept=0, linetype = 2) + theme_bw()
+p.pistar.dem
+```
+Same effect here as with PAN binary fraud measure.
+
+```{r pan_delta_demindex}
+model.dpan.voteshare.demindex<-lmer(PAN.voteshare ~ delta.pan + presidential.x+
+                        demindex.pan+
+                        #piped.water+
+                        grp2013.pop +
+                        pct.catholic+
+                        log(density)+
+                        log(population)+
+                        #log(indigenous)+
+                        over.sixty+
+                        postprimary.by.pop+
+                          pri.pres+
+                          #pri.pres*pan.gov+   #pri.pres is not helpful
+                      demindex.pan*delta.pan +
+                        (1 | id_estado.x), REML=FALSE, data=subset(mex.data, mex.data$year > 1997)) #Varying intercept  AIC and BIC better than varying intercept + varying slope model
+
+summary(model.dpan.voteshare.demindex)
+p.delta.dem <- interplot(model.dpan.voteshare.demindex, var1="delta.pan", var2="demindex.pan", hist=TRUE) + geom_hline(yintercept=0, linetype = 2) + labs(x = "Subnational democracy index-PAN control") + theme_bw()
+p.delta.dem
+```
+
+###Legmargin.pan
+
+
+```{r voteshares_panfraud_leg}
+model.pan.voteshare.leg<-lmer(PAN.voteshare ~ PAN + presidential.x+ 
+                        legmargin.pan+
+                        #piped.water+
+                        grp2013.pop +
+                        pct.catholic+
+                        log(density)+
+                        log(population)+
+                        #log(indigenous)+
+                        over.sixty+
+                        postprimary.by.pop+
+                          pri.pres+
+                          #pri.pres*pan.gov+   #pri.pres is not helpful
+                      legmargin.pan*PAN +
+                        (1 | id_estado.x), data=subset(mex.data, mex.data$year > 1997), REML=FALSE) #Varying intercept  AIC and BIC better than varying intercept + varying slope model
+
+summary(model.pan.voteshare.leg)
+interplot(model.pan.voteshare.leg, var1="PAN", var2="legmargin.pan")
+```
+Binary PAN fraud has negative marginal effect on PAN vote-share at all levels of demindex.pan
+
+```{r voteshares_spikes_leg}
+model.panspikes.voteshare.leg<-lmer(PAN.voteshare ~ pan.spikes.share +    
+                                                  presidential.x+
+                        legmargin.pan+
+                        #piped.water+
+                        grp2013.pop +
+                        pct.catholic+
+                        #log(density)+
+                        log(population)+
+                        #log(indigenous)+
+                        over.sixty+
+                        postprimary.by.pop+
+                          pri.pres+
+                          #pri.pres*pan.gov+   #pri.pres is not helpful
+                      legmargin.pan*pan.spikes.share +
+                        (1 | id_estado.x), REML=FALSE, data=subset(mex.data, mex.data$year > 1997)) #Varying intercept  AIC and BIC better than varying intercept + varying slope model
+
+summary(model.panspikes.voteshare.leg)
+interplot(model.panspikes.voteshare.leg, var1="pan.spikes.share", var2="legmargin.pan")
+```
+
+```{r pan_pistar_leg}
+model.pspan.voteshare.leg<-lmer(PAN.voteshare ~ pistar.pan + presidential.x+
+                        legmargin.pan+
+                        #piped.water+
+                        grp2013.pop +
+                        pct.catholic+
+                        log(density)+
+                        log(population)+
+                        #log(indigenous)+
+                        over.sixty+
+                        postprimary.by.pop+
+                          pri.pres+
+                          #pri.pres*pan.gov+   #pri.pres is not helpful
+                      legmargin.pan*pistar.pan +
+                        (1 | id_estado.x), REML=FALSE, data=subset(mex.data, mex.data$year > 1997)) #Varying intercept  AIC and BIC better than varying intercept + varying slope model
+
+summary(model.pspan.voteshare.leg)
+interplot(model.pspan.voteshare.leg, var1="pistar.pan", var2="legmargin.pan", hist=TRUE)
+```
+
+
+```{r pan_delta_leg}
+model.dpan.voteshare.leg<-lmer(PAN.voteshare ~ delta.pan + presidential.x+
+                        legmargin.pan+
+                        #piped.water+
+                        grp2013.pop +
+                        pct.catholic+
+                        log(density)+
+                        log(population)+
+                        #log(indigenous)+
+                        over.sixty+
+                        postprimary.by.pop+
+                          pri.pres+
+                          #pri.pres*pan.gov+   #pri.pres is not helpful
+                      legmargin.pan*delta.pan +
+                        (1 | id_estado.x), REML=FALSE, data=subset(mex.data, mex.data$year > 1997)) #Varying intercept  AIC and BIC better than varying intercept + varying slope model
+
+summary(model.dpan.voteshare.leg)
+interplot(model.dpan.voteshare.leg, var1="delta.pan", var2="legmargin.pan", hist=TRUE)
+```
+
+###Unified government factors
+
+
+```{r voteshares_panfraud_reggov}
+model.pan.voteshare.reggov<-lmer(PAN.voteshare ~ PAN + presidential.x+
+                        reggov.factor +
+                        #piped.water+
+                        grp2013.pop +
+                        pct.catholic+
+                        log(density)+
+                        log(population)+
+                        #log(indigenous)+
+                        over.sixty+
+                        postprimary.by.pop+
+                          pri.pres+
+                          #pri.pres*pan.gov+   #pri.pres is not helpful
+                         # unified.reggov.pri*PAN +
+                          reggov.factor*PAN +
+                        (1 | id_estado.x), data=subset(mex.data, mex.data$year > 1997), REML=FALSE) #Varying intercept  AIC and BIC better than varying intercept + varying slope model
+
+summary(model.pan.voteshare.reggov)
+p.binary.reggov <- interplot(model.pan.voteshare.reggov, var1="PAN", var2="reggov.factor", point=TRUE) + geom_hline(yintercept = 0, linetype = 2) + theme_bw()
+p.binary.reggov
+```
+Binary PAN fraud has negative marginal effect on PAN vote-share under PRI unified government, and a positive but non-sig effect under PAN unified
+
+```{r voteshares_spikes_reggov}
+mex.data$pan.total.scale <- scale(mex.data$pan.spikes.share)
+model.panspikes.voteshare.reg<-lmer(PAN.voteshare ~ pan.spikes.share +    
+                      #  n.precincts + 
+                          presidential.x+
+                        reggov.factor+
+                        #piped.water+
+                        grp2013.pop +
+                        pct.catholic+
+                        log(density)+
+                        log(population)+
+                        #log(indigenous)+
+                        over.sixty+
+                        postprimary.by.pop+
+                          pri.pres+
+                          #pri.pres*pan.gov+   #pri.pres is not helpful
+                      reggov.factor*pan.spikes.share +
+                        (1 | id_estado.x), REML=FALSE, data=subset(mex.data, mex.data$year > 1997)) #Varying intercept  AIC and BIC better than varying intercept + varying slope model
+
+summary(model.panspikes.voteshare.reg)
+interplot(model.panspikes.voteshare.reg, var1="pan.spikes.share", var2="reggov.factor", point=TRUE)
+```
+
+Positive effect for PAN unified government compared to PRI unified government
+
+```{r pan_pistar_reggov}
+model.pspan.voteshare.reg<-lmer(PAN.voteshare ~ pistar.pan + presidential.x+
+                       reggov.factor+
+                        #piped.water+
+                        grp2013.pop +
+                        pct.catholic+
+                        log(density)+
+                        log(population)+
+                        #log(indigenous)+
+                        over.sixty+
+                        postprimary.by.pop+
+                          pri.pres+
+                          #pri.pres*pan.gov+   #pri.pres is not helpful
+                      reggov.factor*pistar.pan +
+                        (1 | id_estado.x), REML=FALSE, data=subset(mex.data, mex.data$year > 1997)) #Varying intercept  AIC and BIC better than varying intercept + varying slope model
+
+summary(model.pspan.voteshare.reg)
+p.pistar.reggov <- interplot(model.pspan.voteshare.reg, var1="pistar.pan", var2="reggov.factor", point=TRUE) + geom_hline(yintercept = 0, linetype = 2) + theme_bw()
+p.pistar.reggov
+```
+
+Positive effect for PAN unified with PRI unified as baseline
+
+
+```{r pan_delta_reggov}
+model.dpan.voteshare.reg<-lmer(PAN.voteshare ~ delta.pan + presidential.x+
+                       reggov.factor+
+                        #piped.water+
+                        grp2013.pop +
+                        pct.catholic+
+                        log(density)+
+                        log(population)+
+                        #log(indigenous)+
+                        over.sixty+
+                        postprimary.by.pop+
+                          pri.pres+
+                          #pri.pres*pan.gov+   #pri.pres is not helpful
+                      reggov.factor*delta.pan +
+                        (1 | id_estado.x), REML=FALSE, data=subset(mex.data, mex.data$year > 1997)) #Varying intercept  AIC and BIC better than varying intercept + varying slope model
+
+summary(model.dpan.voteshare.reg)
+p.delta.reggov <- interplot(model.dpan.voteshare.reg, var1="delta.pan", var2="reggov.factor", point=TRUE)  + geom_hline(yintercept = 0, linetype = 2) + labs(x = "Partisan control of state legislature and governorship, PRI baseline") + theme_bw()
+p.delta.reggov
+```
+
+
+##Tables
+
+```{r pan_table, include=FALSE, message=FALSE}
+vars.order <- c("presidential.x", "pri.pres", "grp2013.pop", "pct.catholic", "density", "population", "over.sixty", "postprimary.by.pop", "pan.gov.continuous", "PAN", "pistar.pan", "delta.pan", "PAN:reggov.pan", "pistar.pan:reggov.pan", "delta.pan:reggov.pan")
+
+stargazer(model.controls, model.pan.voteshare.demindex, model.pspan.voteshare.demindex, model.dpan.voteshare.demindex, type = "html", digits = 2, no.space = TRUE, order = vars.order, out="results pan models dem.html")
+
+stargazer(model.pan.voteshare.reggov, model.pspan.voteshare.reg, model.dpan.voteshare.reg, type = "html", digits = 2, no.space = TRUE, order = vars.order, out="results pan models reg.html")
+
+stargazer(model.controls, model.pan.voteshare, model.pspan.voteshare, model.dpan.voteshare, type = "html", digits = 2, no.space = TRUE, order = vars.order, out="results pan models continous gov.html")
+```
+
+###Plots
+
+```{r}
+p.combined.mex.dem <- plot_grid(p.binary.dem, p.pistar.dem, p.delta.dem, align = "v", nrow = 3, labels = c("A", "B", "C"), label_size = 12, hjust = 0)
+
+p.combined.mex <- plot_grid(p.binary.reggov, p.pistar.reggov, p.delta.reggov, align = "v", nrow = 3, labels = c("A", "B", "C"), label_size = 12, hjust = 0)
+
+
+p.combined.mex.voteshare <- plot_grid(p.binary.comp, p.pistar.pancont, p.delta.pancont, align = "v", nrow = 3, labels = c("A", "B", "C"), label_size = 12, hjust = 0)
+```
+png(filename = "combined plot mexico demindex.png", width=5, height=7, units="in", res=500) 
+p.combined.mex.dem 
+dev.off()
+
+png(filename = "combined plot mexico.png", width=5, height=7, units="in", res=500) 
+p.combined.mex 
+dev.off()
+
+png(filename = "combined plot mexico voteshare.png", width=5, height=7, units="in", res=500) 
+p.combined.mex.voteshare 
+dev.off()
+
+###Predicted values
+
+
+
+##Looking only at the 1994 results and the fraud measures
+
+This is meant to show that there is some negative fraud in this setting, when PRI was still dominant and faced less local constraint
+
+```{r voteshares_panfraud_1994}
+model.pan.1994<-lmer(PAN.voteshare ~ PAN + presidential.x+
                         pan.gov+
                         #piped.water+
                         grp2013.pop +
                         pct.catholic+
                         log(density)+
                         log(population)+
-                        log(indigenous)+
+                        #log(indigenous)+
                         over.sixty+
                         postprimary.by.pop+
-                          #pri.pres+
+                        #  pri.pres+
                           #pri.pres*pan.gov+   #pri.pres is not helpful
-                      pct.govs.notpri*pan.gov+
-                        (1 | id_estado.x), data=mex.data,
-                 family=binomial) #Varying intercept  AIC and BIC better than varying intercept + varying slope model
+                     
+                        (1 | id_estado.x), data=subset(mex.data, mex.data$year == 1994), REML=FALSE) #Varying intercept  AIC and BIC better than varying intercept + varying slope model
+
+summary(model.pan.1994)
+#interplot(model.pan.1994, var1="PAN", var2="pan.gov")
+```
+
+```{r voteshares_pistar_1994}
+model.pistar.1994<-lmer(PAN.voteshare ~ pistar.pan + presidential.x  +
+                        pan.gov+
+                        #piped.water+
+                        grp2013.pop +
+                        pct.catholic+
+                        log(density)+
+                        log(population)+
+                        #log(indigenous)+
+                        over.sixty+
+                        postprimary.by.pop+ pistar.pan*pan.gov +
+                        #  pri.pres+
+                          #pri.pres*pan.gov+   #pri.pres is not helpful
+                     
+                        (1 | id_estado.x), data=subset(mex.data, mex.data$year == 1994), REML=FALSE) #Varying intercept  AIC and BIC better than varying intercept + varying slope model
+
+summary(model.pistar.1994)
+interplot(model.pistar.1994, var1="pistar.pan", var2="pan.gov")
+```
+
+
+```{r voteshares_delta_1994}
+model.delta.1994<-lmer(PAN.voteshare ~ delta.pan + presidential.x  +
+                        pan.gov+
+                        #piped.water+
+                        grp2013.pop +
+                        pct.catholic+
+                        log(density)+
+                        log(population)+
+                        #log(indigenous)+
+                        over.sixty+
+                        postprimary.by.pop+ delta.pan*pan.gov +
+                        #  pri.pres+
+                          #pri.pres*pan.gov+   #pri.pres is not helpful
+                     
+                        (1 | id_estado.x), data=subset(mex.data, mex.data$year == 1994), REML=FALSE) #Varying intercept  AIC and BIC better than varying intercept + varying slope model
+
+summary(model.delta.1994)
+interplot(model.delta.1994, var1="delta.pan", var2="pan.gov")
+```
+
+
+
+##Predictors of fraud analysis
+Next step is to do the same multilevel analyses as in dissertation script and see how they turn out with the addition of this new data.
+
+The model below shows that PAN governors reduce PAN fraud when PRI is dominant nationwide; as PRI loses ground, they have no effect (neither positive or negative)
+
+```{r base_model}
+model.pan.mm.controls<-glmer(PAN~presidential.x+ 
+                        pri.deputies.proportion+
+                        demindex.pan +
+                        #piped.water+
+                        grp2013.pop +
+                        #pct.catholic+
+                        log(density)+
+                        log(population)+
+                        #log(indigenous)+
+                        #over.sixty+
+                        postprimary.by.pop+
+                          pri.pres+
+                          #pri.pres*pan.gov+   #pri.pres is not helpful
+                      
+                        (1 | id_estado.x), data=subset(mex.data, mex.data$year > 1997),
+                 family=binomial, nAGQ = 0) #Varying intercept  AIC and BIC better than varying intercept + varying slope model
 
 summary(model.pan.mm.controls)
 ```
@@ -77,6 +630,7 @@ newdata2<- with(mex.data, data.frame(pct.govs.notpri = rep(seq(from = min(mex.da
                            population=mean(log(mex.data$population)),
                            indigenous=mean(log(mex.data$indigenous)),
                            over.sixty=mean(mex.data$over.sixty),
+                           pri.pres = 1,
                            #piped.water = mean(piped.water, na.rm=TRUE),
                            postprimary.by.pop=mean(mex.data$postprimary.by.pop))) #PAN set to 0 as placeholder
 
@@ -109,82 +663,208 @@ h1 + theme_bw()  #Correct graph here
 
 
 
-Now using alternation.ever as the explanatory variable
+Now using reggov as the explanatory variable
 
-```{r model_alternation}
-model.pan.mm.alt.controls<-glmer(PAN~presidential.x+
-                                   pan.gov +
-                                   post.1996 +
-                                   pct.govs.notpri + 
-                                   piped.water + 
-                                   alternation.ever+
-                                   pct.catholic + 
-                                   log(density) +
-                                   log(population) +
-                                   log(indigenous) + 
-                                   over.sixty + 
-                                   postprimary.by.pop +
-                               pct.govs.notpri*alternation.ever +(1 | id_estado.x), data=mex.data,
-                             family=binomial)
-summary(model.pan.mm.alt.controls)
+```{r model_pangov.cont}
+model.pan.mm.pangovcont <- glmer(PAN~presidential.x+ 
+                        pri.deputies.proportion+
+                        demindex.pan+
+                        #piped.water+
+                        grp2013.pop +
+                       # pct.catholic+
+                        log(density)+
+                        log(population)+
+                     #   log(indigenous)+
+                     #  over.sixty+
+                      #  postprimary.by.pop+
+                          pri.pres+
+                          #pri.pres*pan.gov+   #pri.pres is not helpful
+                     
+                               (1 | id_estado.x), data=subset(mex.data, mex.data$year > 1997),
+                             family=binomial, nAGQ = 0)
+summary(model.pan.mm.pangovcont)
 ```
 
-Plotting alternation model
+Plotting pan.gov.continuous model
+
+Currently broken, need to adjust values for pct.govs.notpri so that they match up with the repeating sequence of pan.gov.continuous
 
 ```{r plot_alternation}
-newdata2<- with(mex.data, data.frame(PAN = mex.data$PAN, pct.govs.notpri = rep(seq(from = min(mex.data$pct.govs.notpri), to = max(mex.data$pct.govs.notpri), length.out = 448/2),2),
+newdata2<- with(mex.data, data.frame(PAN = mex.data$PAN, 
+                                     pct.govs.notpri = rep(seq(from = min(mex.data$pct.govs.notpri), to = max(mex.data$pct.govs.notpri), length.out = 448/2),2),
                                        presidential.x = 0, 
                                      pan.gov = 1,
                                      post.1996 = 1,
-                                     alternation.ever = factor(c(rep(0,448/2), rep(1, 448/2))),
+                                     pan.gov.continuous = c(rep(seq(from=0, to=8, by=1), 49), seq(from=0, to=6, by =1)),
                                        grp2013.pop = mean(mex.data$grp2013.pop),
                              pct.catholic = mean(mex.data$pct.catholic),
                            density=mean(log(mex.data$density)),
                            population=mean(log(mex.data$population)),
                            indigenous=mean(log(mex.data$indigenous)),
                            over.sixty=mean(mex.data$over.sixty),
+                           pri.pres=1,
                                        piped.water=mean(mex.data$piped.water),
                                        postprimary.by.pop=mean(mex.data$postprimary.by.pop))) #PAN set to 0 as placeholder
 
 
-mm <- model.matrix(terms(model.pan.mm.alt.controls),newdata2)
-newdata2$PAN <- predict(model.pan.mm.alt.controls,newdata2,re.form=NA)
+mm <- model.matrix(terms(model.pan.mm.pangovcont),newdata2)
+newdata2$PAN <- predict(model.pan.mm.pangovcont,newdata2,re.form=NA)
 newdata2$invPAN<-invlogit(newdata2$PAN)
 ## or newdat$distance <- mm %*% fixef(model.pan.mm.controls)
 
 #plot confidence
 library(ggplot2)
-g0 <- ggplot(newdata2, aes(x=pct.govs.notpri, y=invPAN, colour=alternation.ever))+geom_line() +
+g0 <- ggplot(newdata2, aes(x=pct.govs.notpri, y=invPAN, colour=pan.gov.continuous))+geom_line() +
   labs(title="Predicted probability of PAN fraud by national and local competitiveness",
        x="National percentage non-PRI governors",
-       y="Predicted probability of PAN fraud") +facet_wrap(~ alternation.ever)+ theme_bw()+
+       y="Predicted probability of PAN fraud") +facet_wrap(~ pan.gov.continuous)+ theme_bw()+
   scale_colour_discrete(name="Political alternation")  #Probably work with this one
 #plot prediction
 g0
 ```
+
+
+###Pistar and delta
+
+```{r model_pangov.cont}
+model.pistar <- lmer(pistar.pan~presidential.x+
+                                  
+                        pri.deputies.proportion+
+                        demindex.pan+
+                        #piped.water+
+                        grp2013.pop +
+                       # pct.catholic+
+                        log(density)+
+                        log(population)+
+                        #log(indigenous)+
+                     #  over.sixty+
+                        postprimary.by.pop+
+                          pri.pres+
+                         (1 | id_estado.x), data=subset(mex.data, mex.data$year > 1997), REML=FALSE)
+summary(model.pistar)
+```
+
+
+```{r model_pangov.cont}
+model.delta <- lmer(delta.pan~presidential.x+
+                                  
+                        pri.deputies.proportion+
+                        demindex.pan+
+                      #  piped.water+
+                        grp2013.pop +
+                       # pct.catholic+
+                        log(density)+
+                        log(population)+
+                        #log(indigenous)+
+                       #over.sixty+
+                      postprimary.by.pop+
+                          pri.pres+
+                          #pri.pres*pan.gov+   #pri.pres is not helpful
+                     
+                               (1 | id_estado.x), data=subset(mex.data, mex.data$year > 1997), REML=FALSE)
+summary(model.delta)
+```
+
+vars.order <- c("presidential.x", "pri.pres", "grp2013.pop", "density", "postprimary.by.pop",
+                "population", "demindex.pan", 
+                "PAN",
+                "pistar.pan", "delta.pan")
+stargazer(model.pan.mm.controls, model.pistar, model.delta, 
+type="html", order=vars.order, out = "results pan models.html")
+
+
+###Legmargin
+```{r}
+model.pan.leg <- glmer(PAN~presidential.x+
+                        pct.govs.notpri+
+                         legmargin.pan +
+                        I(legmargin.pan^2)+
+                        #piped.water+
+                        grp2013.pop +
+                       # pct.catholic+
+                        log(density)+
+                        log(population)+
+                     #   log(indigenous)+
+                     #  over.sixty+
+                      #  postprimary.by.pop+
+                          pri.pres+
+                          #pri.pres*pan.gov+   #pri.pres is not helpful
+                     
+                               (1 | id_estado.x), data=subset(mex.data, mex.data$year > 1997),
+                             family=binomial, nAGQ = 0)
+summary(model.pan.leg)
+```
+
+
+```{r}
+model.pistar.leg <- lmer(pistar.pan~presidential.x+
+                        pct.govs.notpri+
+                         legmargin.pan +
+                      
+                        #piped.water+
+                        grp2013.pop +
+                       # pct.catholic+
+                        log(density)+
+                        log(population)+
+                     #   log(indigenous)+
+                     #  over.sixty+
+                      #  postprimary.by.pop+
+                          pri.pres+
+                          #pri.pres*pan.gov+   #pri.pres is not helpful
+                     
+                               (1 | id_estado.x), data=subset(mex.data, mex.data$year > 1997),
+                             nAGQ = 0)
+summary(model.pistar.leg)
+
+```
+
+
+```{r}
+model.d.leg <- lmer(delta.pan~presidential.x+
+                        pct.govs.notpri+
+                         legmargin.pan +
+                         + I(legmargin.pan^2) +
+                        #piped.water+
+                        grp2013.pop +
+                       # pct.catholic+
+                        log(density)+
+                        log(population)+
+                     #   log(indigenous)+
+                     #  over.sixty+
+                      #  postprimary.by.pop+
+                          pri.pres+
+                          #pri.pres*pan.gov+   #pri.pres is not helpful
+                     
+                               (1 | id_estado.x), data=subset(mex.data, mex.data$year > 1997))
+summary(model.d.leg)
+
+```
+
 
 ##Spikes analysis
 
 This fixed effects model is used because we can't do quasi-Poisson with MLM using glmer. Quasi is necessary because the data are wildly overdispersed, so regular Poisson is hugely wrong. It shows similar results to the digits model, though without an increase in spikes at the high end (rather it is stable)
 
 ```{r spikes_gov}
-model.spikes.gov <-   glm(pan.total.suspicious~presidential.x+
-                        pct.govs.notpri+
-                        pan.gov+
-                          #piped.water+
-                        grp2013.pop +
+model.spikes.gov <-   glm(pan.spikes.share~presidential.x+
+                        outgoing.deputies.pan+
+                        sitting.pres.pri +
+                        pan.gov +
+                          
+                        #piped.water+
+                        #grp2013.pop +
                         #pct.catholic+
                         #log(density)+
                         #log(population)+
-                        log(indigenous)+
-                        over.sixty+
-                        postprimary.by.pop + 
-                          n.precincts +
+                        #log(indigenous)+
+                        #over.sixty+
+                        #postprimary.by.pop + 
+                          n.precincts 
                           #pri.pres+
                           #pri.pres*pan.gov+   #pri.pres is not helpful
-                      pct.govs.notpri*pan.gov + factor(id_estado.x), data=mex.data, family=quasipoisson)
+                      + factor(id_estado.x), data=mex.data, family=quasipoisson)
 summary(model.spikes.gov)
-interplot(model.spikes.gov, var1="pan.gov", var2="pct.govs.notpri")
+interplot(model.spikes.gov, var1="pan.gov", var2="sitting.pres.pri")
 ```
 
 
@@ -192,3 +872,106 @@ interplot(model.spikes.gov, var1="pan.gov", var2="pct.govs.notpri")
 
 
 These results seem encouraging.  The next steps should be to confirm that increases in fraud score and spikes under PAN governors are associated with higher vote-shares or other indicators of positive fraud. These could include looking at skewness or multimodality in turnout / voteshare.  That would mean collecting those figures from whatever datasets I already have.
+
+```{r voteshares_PAN_pangov}
+m.panshare.pangov <- lmer(PAN.voteshare~presidential.x+
+                                   pan.gov +
+                                   post.1996 +
+                                   pct.govs.notpri + 
+                                   piped.water + 
+                                   
+                                   pct.catholic + 
+                                   log(density) +
+                                   log(population) +
+                                   log(indigenous) + 
+                                   over.sixty + 
+                                   postprimary.by.pop + PAN + 
+                               PAN*pan.gov +(1 | id_estado.x), data=mex.data)
+summary(m.panshare.pangov)
+
+interplot(m.panshare.pangov, var2 = "PAN", var1 = "pan.gov")
+```
+
+```{r voteshares_PAN_prigov}
+m.panshare.prigov <- lmer(PAN.voteshare~presidential.x+
+                                   pri.gov +
+                                   post.1996 +
+                                   pct.govs.notpri + 
+                                   piped.water + 
+                                   
+                                   pct.catholic + 
+                                   log(density) +
+                                   log(population) +
+                                   log(indigenous) + 
+                                   over.sixty + 
+                                   postprimary.by.pop + PAN + 
+                               PAN*pri.gov +(1 | id_estado.x), data=mex.data)
+summary(m.panshare.prigov)
+
+interplot(m.panshare.prigov, var1 = "PAN", var2 = "pri.gov")
+```
+
+These results show that PAN fraud under PRI governors is associated with lower PAN voteshare, and vice versa under PAN governors.  That is probably enough to go on for the conference paper.
+
+```{r giraudy_vars}
+model.sur.fraud <- glmer(PAN~presidential.x+
+                                   pan.gov +
+                                   sub.demindex.giraudy + 
+                                   piped.water + 
+                                    
+                                   pct.catholic + 
+                                   log(density) +
+                                   log(population) +
+                                   log(indigenous) + 
+                                   over.sixty + 
+                                   postprimary.by.pop +
+                               sub.demindex.giraudy*pan.gov +(1 | id_estado.x), data=mex.data, family=binomial)
+summary(model.sur.fraud)
+interplot(model.sur.fraud, var1="pan.gov", var2="sub.demindex.giraudy")
+
+model.sur.vs <- lmer(PAN.voteshare~presidential.x+
+                                   pan.gov +
+                                   sub.demindex.giraudy + 
+                                   piped.water + 
+                                   PAN + 
+                                   pct.catholic + 
+                                   log(density) +
+                                   log(population) +
+                                   log(indigenous) + 
+                                   over.sixty + 
+                                   postprimary.by.pop +
+                               PAN*sub.demindex.giraudy*pan.gov +(1 | id_estado.x), data=mex.data)
+summary(model.sur.vs)
+```
+
+```{r bureaucracy_var}
+model.sur.fraud <- glmer(PAN~presidential.x+
+                                   pan.gov +
+                                   sub.bureaucratic.giraudy + 
+                                   piped.water + 
+                                    
+                                   pct.catholic + 
+                                   log(density) +
+                                   log(population) +
+                                   log(indigenous) + 
+                                   over.sixty + 
+                                   postprimary.by.pop +
+                               sub.bureaucratic.giraudy*pan.gov +(1 | id_estado.x), data=mex.data, family=binomial)
+summary(model.sur.fraud)
+#interplot(model.sur.fraud, var1="pan.gov", var2="sub.bureaucratic.giraudy")
+
+model.sur.vs <- lmer(PAN.voteshare~presidential.x+
+                                   pan.gov +
+                                   sub.bureaucratic.giraudy + 
+                                   piped.water + 
+                                   PAN + 
+                                   pct.catholic + 
+                                   log(density) +
+                                   log(population) +
+                                   log(indigenous) + 
+                                   over.sixty + 
+                                   postprimary.by.pop +
+                               PAN*sub.bureaucratic.giraudy*pan.gov +(1 | id_estado.x), data=mex.data)
+summary(model.sur.vs)
+```
+Unclear how to interpret these results
